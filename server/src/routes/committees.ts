@@ -12,7 +12,9 @@ router.get(
     validateQuery(committeeQuerySchema),
     asyncHandler(async (req: Request, res: Response) => {
         const user = req.user!;
-        const { conference, page = 1, limit = 20 } = req.query as { conference?: string; page: number; limit: number };
+        const conference = req.query.conference as string | undefined;
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 20;
 
         const query: Record<string, unknown> = {};
 

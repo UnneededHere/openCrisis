@@ -14,11 +14,9 @@ router.get(
     })),
     asyncHandler(async (req: Request, res: Response) => {
         const user = req.user!;
-        const { committee, page = 1, limit = 20 } = req.query as {
-            committee?: string;
-            page: number;
-            limit: number;
-        };
+        const committee = req.query.committee as string | undefined;
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 20;
 
         if (!committee) {
             res.status(400).json({

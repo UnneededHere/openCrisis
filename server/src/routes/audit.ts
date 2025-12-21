@@ -19,13 +19,11 @@ router.get(
     requireStaff,
     validateQuery(auditQuerySchema),
     asyncHandler(async (req: Request, res: Response) => {
-        const { entityType, entityId, action, page = 1, limit = 50 } = req.query as {
-            entityType?: string;
-            entityId?: string;
-            action?: string;
-            page: number;
-            limit: number;
-        };
+        const entityType = req.query.entityType as string | undefined;
+        const entityId = req.query.entityId as string | undefined;
+        const action = req.query.action as string | undefined;
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 50;
 
         const query: Record<string, unknown> = {};
 

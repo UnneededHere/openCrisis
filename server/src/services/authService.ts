@@ -12,7 +12,7 @@ class AuthService {
         return jwt.sign(
             { userId: user._id.toString(), role: user.role },
             config.jwtSecret,
-            { expiresIn: config.jwtAccessExpiry }
+            { expiresIn: '15m' } as jwt.SignOptions
         );
     }
 

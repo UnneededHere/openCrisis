@@ -12,13 +12,11 @@ router.get(
     validateQuery(directiveQuerySchema),
     asyncHandler(async (req: Request, res: Response) => {
         const user = req.user!;
-        const { committee, status, submittedBy, page = 1, limit = 20 } = req.query as {
-            committee?: string;
-            status?: string;
-            submittedBy?: string;
-            page: number;
-            limit: number;
-        };
+        const committee = req.query.committee as string | undefined;
+        const status = req.query.status as string | undefined;
+        const submittedBy = req.query.submittedBy as string | undefined;
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 20;
 
         const query: Record<string, unknown> = {};
 
