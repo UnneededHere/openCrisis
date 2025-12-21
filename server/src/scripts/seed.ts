@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { config } from '../config';
 import { logger } from '../config/logger';
-import { User, Conference, Committee } from '../models';
+import { User, Conference, Committee, Directive, Message, Announcement } from '../models';
 
 const seedDatabase = async () => {
     try {
@@ -9,12 +9,15 @@ const seedDatabase = async () => {
         await mongoose.connect(config.mongoUri);
         logger.info('Connected to MongoDB');
 
-        // Clear existing data
+        // Clear ALL existing data
         logger.info('Clearing existing data...');
         await Promise.all([
             User.deleteMany({}),
             Conference.deleteMany({}),
             Committee.deleteMany({}),
+            Directive.deleteMany({}),
+            Message.deleteMany({}),
+            Announcement.deleteMany({}),
         ]);
 
         // Create admin user

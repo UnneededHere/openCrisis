@@ -94,8 +94,8 @@ export const moderateMessageSchema = z.object({
 
 // Announcement schemas
 export const createAnnouncementSchema = z.object({
-    title: z.string().min(2).max(200),
-    body: z.string().min(10).max(10000),
+    title: z.string().min(1).max(200),
+    body: z.string().min(1).max(10000),
     type: z.enum(['media_notice', 'breaking_news', 'general'] as const).default('general'),
     committee: z.string().min(1, 'Committee ID is required'),
     targetDelegates: z.array(z.string()).optional(),

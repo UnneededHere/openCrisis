@@ -20,7 +20,7 @@ const auditLogSchema = new Schema<IAuditLog>(
         },
         entityType: {
             type: String,
-            enum: ['directive', 'update', 'note', 'user', 'conference', 'committee'],
+            enum: ['directive', 'update', 'note', 'message', 'announcement', 'user', 'conference', 'committee'],
             required: true,
             index: true,
         },

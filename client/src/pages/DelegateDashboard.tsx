@@ -175,10 +175,20 @@ export const DelegateDashboard = () => {
             setErrorMessage('');
             setTimeout(() => setSuccessMessage(''), 3000);
         },
-        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
-            const msg = error.response?.data?.error?.message || error.message || 'Failed to submit directive';
+        onError: (error: any) => {
+            let msg = error.response?.data?.error?.message || error.message || 'Failed to submit directive';
+
+            // Append validation details if available
+            if (error.response?.data?.error?.details) {
+                const details = error.response.data.error.details;
+                const detailStr = Object.entries(details)
+                    .map(([field, msgs]) => `${field}: ${(msgs as any[]).join(', ')}`)
+                    .join('; ');
+                if (detailStr) msg += ` (${detailStr})`;
+            }
+
             setErrorMessage(msg);
-            setTimeout(() => setErrorMessage(''), 5000);
+            setTimeout(() => setErrorMessage(''), 8000);
         },
     });
 
@@ -196,10 +206,20 @@ export const DelegateDashboard = () => {
             setErrorMessage('');
             setTimeout(() => setSuccessMessage(''), 3000);
         },
-        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
-            const msg = error.response?.data?.error?.message || error.message || 'Failed to send message';
+        onError: (error: any) => {
+            let msg = error.response?.data?.error?.message || error.message || 'Failed to send message';
+
+            // Append validation details if available
+            if (error.response?.data?.error?.details) {
+                const details = error.response.data.error.details;
+                const detailStr = Object.entries(details)
+                    .map(([field, msgs]) => `${field}: ${(msgs as any[]).join(', ')}`)
+                    .join('; ');
+                if (detailStr) msg += ` (${detailStr})`;
+            }
+
             setErrorMessage(msg);
-            setTimeout(() => setErrorMessage(''), 5000);
+            setTimeout(() => setErrorMessage(''), 8000);
         },
     });
 

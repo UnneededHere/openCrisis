@@ -154,10 +154,14 @@ export const StaffDashboard = () => {
             setErrorMessage('');
             setTimeout(() => setSuccessMessage(''), 3000);
         },
-        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
-            const msg = error.response?.data?.error?.message || error.message || 'Failed to update status';
+        onError: (error: any) => {
+            let msg = error.response?.data?.error?.message || error.message || 'Failed to update status';
+            if (error.response?.data?.error?.details) {
+                const detailStr = Object.entries(error.response.data.error.details).map(([k, v]) => `${k}: ${(v as any[]).join(', ')}`).join('; ');
+                if (detailStr) msg += ` (${detailStr})`;
+            }
             setErrorMessage(msg);
-            setTimeout(() => setErrorMessage(''), 5000);
+            setTimeout(() => setErrorMessage(''), 8000);
         },
     });
 
@@ -172,10 +176,14 @@ export const StaffDashboard = () => {
             setSuccessMessage('Feedback added');
             setTimeout(() => setSuccessMessage(''), 3000);
         },
-        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
-            const msg = error.response?.data?.error?.message || error.message || 'Failed to add feedback';
+        onError: (error: any) => {
+            let msg = error.response?.data?.error?.message || error.message || 'Failed to add feedback';
+            if (error.response?.data?.error?.details) {
+                const detailStr = Object.entries(error.response.data.error.details).map(([k, v]) => `${k}: ${(v as any[]).join(', ')}`).join('; ');
+                if (detailStr) msg += ` (${detailStr})`;
+            }
             setErrorMessage(msg);
-            setTimeout(() => setErrorMessage(''), 5000);
+            setTimeout(() => setErrorMessage(''), 8000);
         },
     });
 
@@ -192,10 +200,14 @@ export const StaffDashboard = () => {
             setSuccessMessage('Announcement posted');
             setTimeout(() => setSuccessMessage(''), 3000);
         },
-        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
-            const msg = error.response?.data?.error?.message || error.message || 'Failed to post announcement';
+        onError: (error: any) => {
+            let msg = error.response?.data?.error?.message || error.message || 'Failed to post announcement';
+            if (error.response?.data?.error?.details) {
+                const detailStr = Object.entries(error.response.data.error.details).map(([k, v]) => `${k}: ${(v as any[]).join(', ')}`).join('; ');
+                if (detailStr) msg += ` (${detailStr})`;
+            }
             setErrorMessage(msg);
-            setTimeout(() => setErrorMessage(''), 5000);
+            setTimeout(() => setErrorMessage(''), 8000);
         },
     });
 
@@ -210,10 +222,14 @@ export const StaffDashboard = () => {
             setSuccessMessage(`Message ${variables.action}d successfully`);
             setTimeout(() => setSuccessMessage(''), 3000);
         },
-        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
-            const msg = error.response?.data?.error?.message || error.message || 'Failed to moderate message';
+        onError: (error: any) => {
+            let msg = error.response?.data?.error?.message || error.message || 'Failed to moderate message';
+            if (error.response?.data?.error?.details) {
+                const detailStr = Object.entries(error.response.data.error.details).map(([k, v]) => `${k}: ${(v as any[]).join(', ')}`).join('; ');
+                if (detailStr) msg += ` (${detailStr})`;
+            }
             setErrorMessage(msg);
-            setTimeout(() => setErrorMessage(''), 5000);
+            setTimeout(() => setErrorMessage(''), 8000);
         },
     });
 
