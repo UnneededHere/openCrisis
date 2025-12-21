@@ -1,0 +1,38 @@
+{
+  "name": "opencrisis",
+  "version": "1.0.0",
+  "description": "Open-source crisis-management web app for Model UN",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
+    "test": "npm run test -w server && npm run test -w client",
+    "lint": "npm run lint -w server && npm run lint -w client",
+    "seed": "npm run seed -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/opencrisis.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "model-un",
+    "crisis-committee",
+    "mun",
+    "mern",
+    "realtime"
+  ]
+}
