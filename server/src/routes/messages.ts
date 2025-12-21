@@ -109,7 +109,7 @@ router.post(
         }
 
         // Verify sender is a member
-        if (!committee.members.some((m) => m.toString() === user._id.toString())) {
+        if (!committee.members.some((m) => m.user.toString() === user._id.toString())) {
             res.status(403).json({
                 success: false,
                 error: { code: 'FORBIDDEN', message: 'You are not a member of this committee' },
@@ -127,7 +127,7 @@ router.post(
             return;
         }
 
-        if (!committee.members.some((m) => m.toString() === recipientId)) {
+        if (!committee.members.some((m) => m.user.toString() === recipientId)) {
             res.status(400).json({
                 success: false,
                 error: { code: 'VALIDATION_ERROR', message: 'Recipient is not a member of this committee' },

@@ -94,7 +94,7 @@ router.post(
             return;
         }
 
-        if (!committee.members.some((m) => m.toString() === user._id.toString())) {
+        if (!committee.members.some((m) => m.user.toString() === user._id.toString())) {
             res.status(403).json({
                 success: false,
                 error: { code: 'FORBIDDEN', message: 'You are not a member of this committee' },
@@ -113,7 +113,7 @@ router.post(
             }
             // Verify all co-signers are committee members
             for (const signerId of coSigners) {
-                if (!committee.members.some((m) => m.toString() === signerId)) {
+                if (!committee.members.some((m) => m.user.toString() === signerId)) {
                     res.status(400).json({
                         success: false,
                         error: { code: 'VALIDATION_ERROR', message: `Co-signer ${signerId} is not a committee member` },

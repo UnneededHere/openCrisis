@@ -115,6 +115,7 @@ export const DelegateDashboard = () => {
     const [type, setType] = useState<DirectiveType>('personal');
     const [selectedCoSigners, setSelectedCoSigners] = useState<string[]>([]);
     const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
 
     // Message state
     const [messageRecipient, setMessageRecipient] = useState('');
@@ -171,7 +172,13 @@ export const DelegateDashboard = () => {
             setType('personal');
             setSelectedCoSigners([]);
             setSuccessMessage('Directive submitted successfully!');
+            setErrorMessage('');
             setTimeout(() => setSuccessMessage(''), 3000);
+        },
+        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
+            const msg = error.response?.data?.error?.message || error.message || 'Failed to submit directive';
+            setErrorMessage(msg);
+            setTimeout(() => setErrorMessage(''), 5000);
         },
     });
 
@@ -186,7 +193,13 @@ export const DelegateDashboard = () => {
             setMessageRecipient('');
             setMessageContent('');
             setSuccessMessage('Message sent for approval!');
+            setErrorMessage('');
             setTimeout(() => setSuccessMessage(''), 3000);
+        },
+        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
+            const msg = error.response?.data?.error?.message || error.message || 'Failed to send message';
+            setErrorMessage(msg);
+            setTimeout(() => setErrorMessage(''), 5000);
         },
     });
 
@@ -274,6 +287,12 @@ export const DelegateDashboard = () => {
                                 {successMessage && (
                                     <Alert severity="success" sx={{ mb: 2 }}>
                                         {successMessage}
+                                    </Alert>
+                                )}
+
+                                {errorMessage && (
+                                    <Alert severity="error" sx={{ mb: 2 }}>
+                                        {errorMessage}
                                     </Alert>
                                 )}
 

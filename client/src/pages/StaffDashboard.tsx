@@ -99,6 +99,10 @@ export const StaffDashboard = () => {
     // Message moderation state
     const [rejectionReason, setRejectionReason] = useState('');
 
+    // Feedback state
+    const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
     // Fetch committees
     const { data: committees } = useQuery({
         queryKey: ['committees'],
@@ -146,6 +150,14 @@ export const StaffDashboard = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['directives'] });
             setSelectedDirective(null);
+            setSuccessMessage('Status updated successfully');
+            setErrorMessage('');
+            setTimeout(() => setSuccessMessage(''), 3000);
+        },
+        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
+            const msg = error.response?.data?.error?.message || error.message || 'Failed to update status';
+            setErrorMessage(msg);
+            setTimeout(() => setErrorMessage(''), 5000);
         },
     });
 
@@ -157,6 +169,13 @@ export const StaffDashboard = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['directives'] });
             setFeedback('');
+            setSuccessMessage('Feedback added');
+            setTimeout(() => setSuccessMessage(''), 3000);
+        },
+        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
+            const msg = error.response?.data?.error?.message || error.message || 'Failed to add feedback';
+            setErrorMessage(msg);
+            setTimeout(() => setErrorMessage(''), 5000);
         },
     });
 
@@ -170,6 +189,13 @@ export const StaffDashboard = () => {
             setAnnouncementBody('');
             setAnnouncementType('general');
             setAnnouncementPriority('normal');
+            setSuccessMessage('Announcement posted');
+            setTimeout(() => setSuccessMessage(''), 3000);
+        },
+        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
+            const msg = error.response?.data?.error?.message || error.message || 'Failed to post announcement';
+            setErrorMessage(msg);
+            setTimeout(() => setErrorMessage(''), 5000);
         },
     });
 
@@ -178,9 +204,16 @@ export const StaffDashboard = () => {
         mutationFn: async ({ id, action, rejectionReason }: { id: string; action: 'approve' | 'deny'; rejectionReason?: string }) => {
             await api.patch(`/messages/${id}/moderate`, { action, rejectionReason });
         },
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['messages'] });
             setRejectionReason('');
+            setSuccessMessage(`Message ${variables.action}d successfully`);
+            setTimeout(() => setSuccessMessage(''), 3000);
+        },
+        onError: (error: Error & { response?: { data?: { error?: { message?: string } } } }) => {
+            const msg = error.response?.data?.error?.message || error.message || 'Failed to moderate message';
+            setErrorMessage(msg);
+            setTimeout(() => setErrorMessage(''), 5000);
         },
     });
 
@@ -230,9 +263,21 @@ export const StaffDashboard = () => {
             <Typography variant="h4" fontWeight={700} gutterBottom>
                 Staff Dashboard
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
                 Manage directives, moderate messages, and post announcements
             </Typography>
+
+            {successMessage && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                    {successMessage}
+                </Alert>
+            )}
+
+            {errorMessage && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    {errorMessage}
+                </Alert>
+            )}
 
             <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ mb: 3 }}>
                 <Tab label="Directive Queue" icon={<Assignment />} iconPosition="start" />
