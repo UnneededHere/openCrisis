@@ -50,6 +50,7 @@ export const updateCommitteeSchema = z.object({
 export const assignCommitteeSchema = z.object({
     userId: z.string().min(1, 'User ID is required'),
     role: z.enum(['member', 'staff'] as const),
+    characterName: z.string().min(1).max(200).optional(), // Required for members
 });
 
 // Directive schemas (updated types: personal, joint, cabinet)

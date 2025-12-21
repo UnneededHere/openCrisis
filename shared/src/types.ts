@@ -57,13 +57,19 @@ export interface Conference extends BaseEntity {
     createdBy: string;
 }
 
+// Committee Member with character name
+export interface CommitteeMember {
+    user: string;
+    characterName: string;
+}
+
 // Committee
 export interface Committee extends BaseEntity {
     name: string;
     conference: string;
     description?: string;
     type: CommitteeType;
-    members: string[];
+    members: CommitteeMember[];
     staff: string[];
 }
 

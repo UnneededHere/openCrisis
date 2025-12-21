@@ -30,6 +30,8 @@ router.get(
         const [committees, total] = await Promise.all([
             Committee.find(query)
                 .populate('conference', 'name code')
+                .populate('members.user', 'name email')
+                .populate('staff', 'name email')
                 .skip(skip)
                 .limit(limit)
                 .sort({ name: 1 }),
@@ -87,7 +89,7 @@ router.get(
 
         const committee = await Committee.findById(id)
             .populate('conference', 'name code')
-            .populate('members', 'name email role')
+            .populate('members.user', 'name email role')
             .populate('staff', 'name email role');
 
         if (!committee) {
@@ -98,9 +100,9 @@ router.get(
             return;
         }
 
-        // Check access - must be admin, committee member/staff, or conference member
+        // Check access
         const isAdmin = user.role === 'admin';
-        const isMember = committee.members.some((m: { _id: { toString: () => string } }) => m._id.toString() === user._id.toString());
+        const isMember = committee.members.some((m) => m.user && m.user._id.toString() === user._id.toString());
         const isStaff = committee.staff.some((s: { _id: { toString: () => string } }) => s._id.toString() === user._id.toString());
         const isConferenceMember = user.conferences.some((c) => c.toString() === committee.conference._id.toString());
 
@@ -157,7 +159,7 @@ router.post(
     validateBody(assignCommitteeSchema),
     asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
-        const { userId, role } = req.body;
+        const { userId, role, characterName } = req.body;
 
         const committee = await Committee.findById(id);
         if (!committee) {
@@ -177,19 +179,40 @@ router.post(
             return;
         }
 
-        // Add user to appropriate array
-        const arrayField = role === 'staff' ? 'staff' : 'members';
-        const otherField = role === 'staff' ? 'members' : 'staff';
+        if (role === 'member') {
+            // Require character name for members
+            if (!characterName) {
+                res.status(400).json({
+                    success: false,
+                    error: { code: 'VALIDATION_ERROR', message: 'Character name is required for members' },
+                });
+                return;
+            }
 
-        // Remove from other array if present
-        await Committee.findByIdAndUpdate(id, {
-            $pull: { [otherField]: userId },
-        });
+            // Remove from staff if present
+            committee.staff = committee.staff.filter(s => s.toString() !== userId);
 
-        // Add to correct array (if not already there)
-        await Committee.findByIdAndUpdate(id, {
-            $addToSet: { [arrayField]: userId },
-        });
+            // Check if already a member
+            const existingMember = committee.members.find(m => m.user.toString() === userId);
+            if (existingMember) {
+                // Update character name
+                existingMember.characterName = characterName;
+            } else {
+                // Add as new member
+                committee.members.push({ user: userId, characterName });
+            }
+        } else {
+            // Staff assignment
+            // Remove from members if present
+            committee.members = committee.members.filter(m => m.user.toString() !== userId);
+
+            // Add to staff if not already there
+            if (!committee.staff.some(s => s.toString() === userId)) {
+                committee.staff.push(userId as unknown as typeof committee.staff[0]);
+            }
+        }
+
+        await committee.save();
 
         // Also add user to the conference if not already
         await User.findByIdAndUpdate(userId, {
@@ -197,7 +220,7 @@ router.post(
         });
 
         const updatedCommittee = await Committee.findById(id)
-            .populate('members', 'name email role')
+            .populate('members.user', 'name email role')
             .populate('staff', 'name email role');
 
         res.json({
@@ -207,9 +230,9 @@ router.post(
     })
 );
 
-// DELETE /api/committees/:id/assign/:userId - Remove user from committee (admin only)
+// DELETE /api/committees/:id/unassign/:userId - Remove user from committee (admin only)
 router.delete(
-    '/:id/assign/:userId',
+    '/:id/unassign/:userId',
     authenticate,
     requireAdmin,
     asyncHandler(async (req: Request, res: Response) => {
@@ -224,13 +247,43 @@ router.delete(
             return;
         }
 
-        await Committee.findByIdAndUpdate(id, {
-            $pull: { members: userId, staff: userId },
-        });
+        // Remove from both arrays
+        committee.members = committee.members.filter(m => m.user.toString() !== userId);
+        committee.staff = committee.staff.filter(s => s.toString() !== userId);
+        await committee.save();
+
+        const updatedCommittee = await Committee.findById(id)
+            .populate('members.user', 'name email role')
+            .populate('staff', 'name email role');
 
         res.json({
             success: true,
-            data: { message: 'User removed from committee' },
+            data: updatedCommittee,
+        });
+    })
+);
+
+// DELETE /api/committees/:id - Delete committee (admin only)
+router.delete(
+    '/:id',
+    authenticate,
+    requireAdmin,
+    asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+
+        const committee = await Committee.findByIdAndDelete(id);
+
+        if (!committee) {
+            res.status(404).json({
+                success: false,
+                error: { code: 'NOT_FOUND', message: 'Committee not found' },
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: { message: 'Committee deleted successfully' },
         });
     })
 );
