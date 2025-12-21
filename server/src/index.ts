@@ -3,6 +3,7 @@ import app from './app';
 import { config } from './config';
 import { connectDatabase } from './config/database';
 import { logger } from './config/logger';
+import { initializeSocket } from './socket';
 
 const startServer = async () => {
     try {
@@ -11,6 +12,10 @@ const startServer = async () => {
 
         // Create HTTP server
         const server = http.createServer(app);
+
+        // Initialize Socket.IO
+        initializeSocket(server);
+        logger.info('Socket.IO initialized');
 
         // Start listening
         server.listen(config.port, () => {
