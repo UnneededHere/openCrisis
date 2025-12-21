@@ -32,11 +32,16 @@ import { api } from '../api/client';
 import { useAppStore } from '../stores/appStore';
 import type { DirectiveType, DirectiveStatus, AnnouncementType } from '@opencrisis/shared';
 
+interface CommitteeMemberPopulated {
+    user: { _id: string; name: string; email: string };
+    characterName: string;
+}
+
 interface Committee {
     _id: string;
     name: string;
     type: string;
-    members: { _id: string; name: string }[];
+    members: CommitteeMemberPopulated[];
     conference: { _id: string; name: string };
 }
 
@@ -217,9 +222,9 @@ export const DelegateDashboard = () => {
         );
     };
 
-    // Get committee members for co-signer selection
+    // Get committee members for co-signer selection (with character names)
     const currentCommittee = committees?.find(c => c._id === selectedCommittee);
-    const availableCoSigners = currentCommittee?.members || [];
+    const availableMembers = currentCommittee?.members || [];
 
     // Combine fetched directives with real-time ones
     const allDirectives = [...realtimeDirectives, ...(directives || [])].filter(
@@ -339,22 +344,22 @@ export const DelegateDashboard = () => {
                                                 Select Co-signers
                                             </Typography>
                                             <FormGroup>
-                                                {availableCoSigners.length === 0 ? (
+                                                {availableMembers.length === 0 ? (
                                                     <Typography variant="body2" color="text.secondary">
                                                         No other members found in this committee
                                                     </Typography>
                                                 ) : (
-                                                    availableCoSigners.map((member) => (
+                                                    availableMembers.map((member) => (
                                                         <FormControlLabel
-                                                            key={member._id}
+                                                            key={member.user._id}
                                                             control={
                                                                 <Checkbox
-                                                                    checked={selectedCoSigners.includes(member._id)}
-                                                                    onChange={() => handleCoSignerToggle(member._id)}
+                                                                    checked={selectedCoSigners.includes(member.user._id)}
+                                                                    onChange={() => handleCoSignerToggle(member.user._id)}
                                                                     size="small"
                                                                 />
                                                             }
-                                                            label={member.name}
+                                                            label={member.characterName}
                                                         />
                                                     ))
                                                 )}
@@ -503,7 +508,7 @@ export const DelegateDashboard = () => {
                                             disabled={!selectedCommittee}
                                         >
                                             {currentCommittee?.members?.map((m) => (
-                                                <MenuItem key={m._id} value={m._id}>{m.name}</MenuItem>
+                                                <MenuItem key={m.user._id} value={m.user._id}>{m.characterName}</MenuItem>
                                             ))}
                                         </Select>
                                     </FormControl>
