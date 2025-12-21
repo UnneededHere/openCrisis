@@ -1,8 +1,8 @@
 // Types
-export * from './types';
+export * from './types.js';
 
 // Schemas
-export * from './schemas';
+export * from './schemas.js';
 
 // API types
-export * from './api';
+export * from './api.js';
