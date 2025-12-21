@@ -22,11 +22,11 @@ export const config = {
 
     // Rate Limiting
     rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
-    rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+    rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10000', 10),
 
     // Auth Rate Limiting (stricter for auth endpoints)
     authRateLimitWindowMs: 15 * 60 * 1000, // 15 minutes
-    authRateLimitMaxRequests: 10, // 10 requests per window
+    authRateLimitMaxRequests: 1000, // 1000 requests per window
 };
 
 export default config;

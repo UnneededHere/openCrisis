@@ -20,13 +20,13 @@ const announcementSchema = new Schema<IAnnouncement>(
             type: String,
             required: true,
             trim: true,
-            minlength: 2,
+            minlength: 1,
             maxlength: 200,
         },
         body: {
             type: String,
             required: true,
-            minlength: 10,
+            minlength: 1,
             maxlength: 10000,
         },
         type: {

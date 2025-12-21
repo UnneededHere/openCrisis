@@ -28,6 +28,7 @@ import {
     Tooltip,
 } from '@mui/material';
 import { Send, Description, Refresh, Visibility, Schedule, Reply, Message, Campaign } from '@mui/icons-material';
+import { extractErrorMessage } from '../utils/error';
 import { api } from '../api/client';
 import { useAppStore } from '../stores/appStore';
 import type { DirectiveType, DirectiveStatus, AnnouncementType } from '@opencrisis/shared';
@@ -175,18 +176,8 @@ export const DelegateDashboard = () => {
             setErrorMessage('');
             setTimeout(() => setSuccessMessage(''), 3000);
         },
-        onError: (error: any) => {
-            let msg = error.response?.data?.error?.message || error.message || 'Failed to submit directive';
-
-            // Append validation details if available
-            if (error.response?.data?.error?.details) {
-                const details = error.response.data.error.details;
-                const detailStr = Object.entries(details)
-                    .map(([field, msgs]) => `${field}: ${(msgs as any[]).join(', ')}`)
-                    .join('; ');
-                if (detailStr) msg += ` (${detailStr})`;
-            }
-
+        onError: (error) => {
+            const msg = extractErrorMessage(error);
             setErrorMessage(msg);
             setTimeout(() => setErrorMessage(''), 8000);
         },
@@ -206,18 +197,8 @@ export const DelegateDashboard = () => {
             setErrorMessage('');
             setTimeout(() => setSuccessMessage(''), 3000);
         },
-        onError: (error: any) => {
-            let msg = error.response?.data?.error?.message || error.message || 'Failed to send message';
-
-            // Append validation details if available
-            if (error.response?.data?.error?.details) {
-                const details = error.response.data.error.details;
-                const detailStr = Object.entries(details)
-                    .map(([field, msgs]) => `${field}: ${(msgs as any[]).join(', ')}`)
-                    .join('; ');
-                if (detailStr) msg += ` (${detailStr})`;
-            }
-
+        onError: (error) => {
+            const msg = extractErrorMessage(error);
             setErrorMessage(msg);
             setTimeout(() => setErrorMessage(''), 8000);
         },
