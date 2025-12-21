@@ -12,6 +12,12 @@ export interface IDirective extends Document {
     assignedTo?: mongoose.Types.ObjectId;
     feedback?: string;
     outcome?: string;
+    // For joint directives - other delegates who co-signed
+    coSigners: mongoose.Types.ObjectId[];
+    // Status tracking timestamps
+    openedAt?: Date;
+    processingAt?: Date;
+    repliedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -33,8 +39,8 @@ const directiveSchema = new Schema<IDirective>(
         },
         type: {
             type: String,
-            enum: ['public', 'private', 'covert'],
-            default: 'public',
+            enum: ['personal', 'joint', 'cabinet'],
+            default: 'personal',
         },
         committee: {
             type: Schema.Types.ObjectId,
@@ -50,7 +56,7 @@ const directiveSchema = new Schema<IDirective>(
         },
         status: {
             type: String,
-            enum: ['submitted', 'in_review', 'needs_revision', 'approved', 'denied', 'executed'],
+            enum: ['submitted', 'opened', 'processing', 'needs_revision', 'approved', 'denied', 'executed'],
             default: 'submitted',
             index: true,
         },
@@ -66,6 +72,21 @@ const directiveSchema = new Schema<IDirective>(
             type: String,
             maxlength: 2000,
         },
+        // For joint directives
+        coSigners: [{
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+        }],
+        // Status tracking timestamps
+        openedAt: {
+            type: Date,
+        },
+        processingAt: {
+            type: Date,
+        },
+        repliedAt: {
+            type: Date,
+        },
     },
     {
         timestamps: true,
@@ -75,6 +96,7 @@ const directiveSchema = new Schema<IDirective>(
 // Compound indexes for common queries
 directiveSchema.index({ committee: 1, status: 1 });
 directiveSchema.index({ committee: 1, createdAt: -1 });
+directiveSchema.index({ coSigners: 1 }); // For finding directives user co-signed
 
 export const Directive = mongoose.model<IDirective>('Directive', directiveSchema);
 export default Directive;

@@ -26,20 +26,24 @@ import {
     CircularProgress,
     Paper,
     Alert,
+    Badge,
 } from '@mui/material';
-import { Assignment, Update, Message, Refresh } from '@mui/icons-material';
+import { Assignment, Campaign, Message, Refresh, Check, Close } from '@mui/icons-material';
 import { api } from '../api/client';
-import type { DirectiveStatus } from '@opencrisis/shared';
+import type { DirectiveStatus, DirectiveType, AnnouncementType, AnnouncementPriority } from '@opencrisis/shared';
 
 interface Directive {
     _id: string;
     title: string;
     body: string;
-    type: string;
+    type: DirectiveType;
     status: DirectiveStatus;
     feedback?: string;
     outcome?: string;
     createdAt: string;
+    openedAt?: string;
+    processingAt?: string;
+    coSigners?: { _id: string; name: string }[];
     submittedBy: { _id: string; name: string; email: string };
     committee: { _id: string; name: string };
 }
@@ -49,13 +53,29 @@ interface Committee {
     name: string;
 }
 
+interface PendingMessage {
+    _id: string;
+    content: string;
+    from: { _id: string; name: string };
+    to: { _id: string; name: string };
+    committee: { _id: string; name: string };
+    createdAt: string;
+}
+
 const statusColors: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
     submitted: 'default',
-    in_review: 'info',
+    opened: 'info',
+    processing: 'primary',
     needs_revision: 'warning',
     approved: 'success',
     denied: 'error',
     executed: 'secondary',
+};
+
+const typeLabels: Record<DirectiveType, string> = {
+    personal: 'Personal',
+    joint: 'Joint',
+    cabinet: 'Cabinet',
 };
 
 export const StaffDashboard = () => {
@@ -68,9 +88,16 @@ export const StaffDashboard = () => {
     const [newStatus, setNewStatus] = useState<DirectiveStatus>('submitted');
     const [feedback, setFeedback] = useState('');
     const [outcome, setOutcome] = useState('');
-    const [updateTitle, setUpdateTitle] = useState('');
-    const [updateBody, setUpdateBody] = useState('');
-    const [updateCommittee, setUpdateCommittee] = useState('');
+
+    // Announcement state
+    const [announcementTitle, setAnnouncementTitle] = useState('');
+    const [announcementBody, setAnnouncementBody] = useState('');
+    const [announcementCommittee, setAnnouncementCommittee] = useState('');
+    const [announcementType, setAnnouncementType] = useState<AnnouncementType>('general');
+    const [announcementPriority, setAnnouncementPriority] = useState<AnnouncementPriority>('normal');
+
+    // Message moderation state
+    const [rejectionReason, setRejectionReason] = useState('');
 
     // Fetch committees
     const { data: committees } = useQuery({
@@ -90,6 +117,24 @@ export const StaffDashboard = () => {
             if (filterStatus) params.append('status', filterStatus);
             const response = await api.get(`/directives?${params.toString()}`);
             return response.data.data as Directive[];
+        },
+    });
+
+    // Fetch pending messages
+    const { data: pendingMessages, refetch: refetchMessages } = useQuery({
+        queryKey: ['messages', 'pending'],
+        queryFn: async () => {
+            const response = await api.get('/messages?status=pending');
+            return response.data.data as PendingMessage[];
+        },
+    });
+
+    // Pending message count
+    const { data: pendingCount } = useQuery({
+        queryKey: ['messages', 'pending', 'count'],
+        queryFn: async () => {
+            const response = await api.get('/messages/pending/count');
+            return response.data.data.count as number;
         },
     });
 
@@ -115,15 +160,27 @@ export const StaffDashboard = () => {
         },
     });
 
-    // Create update mutation
-    const createUpdate = useMutation({
-        mutationFn: async (data: { title: string; body: string; committee: string }) => {
-            await api.post('/updates', { ...data, visibility: 'public' });
+    // Create announcement mutation
+    const createAnnouncement = useMutation({
+        mutationFn: async (data: { title: string; body: string; committee: string; type: AnnouncementType; priority: AnnouncementPriority }) => {
+            await api.post('/announcements', data);
         },
         onSuccess: () => {
-            setUpdateTitle('');
-            setUpdateBody('');
-            setUpdateCommittee('');
+            setAnnouncementTitle('');
+            setAnnouncementBody('');
+            setAnnouncementType('general');
+            setAnnouncementPriority('normal');
+        },
+    });
+
+    // Moderate message mutation
+    const moderateMessage = useMutation({
+        mutationFn: async ({ id, action, rejectionReason }: { id: string; action: 'approve' | 'deny'; rejectionReason?: string }) => {
+            await api.patch(`/messages/${id}/moderate`, { action, rejectionReason });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['messages'] });
+            setRejectionReason('');
         },
     });
 
@@ -148,14 +205,24 @@ export const StaffDashboard = () => {
         addFeedback.mutate({ id: selectedDirective._id, feedback: feedback.trim() });
     };
 
-    const handleUpdateSubmit = (e: React.FormEvent) => {
+    const handleAnnouncementSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!updateCommittee || !updateTitle.trim() || !updateBody.trim()) return;
-        createUpdate.mutate({
-            title: updateTitle.trim(),
-            body: updateBody.trim(),
-            committee: updateCommittee,
+        if (!announcementCommittee || !announcementTitle.trim() || !announcementBody.trim()) return;
+        createAnnouncement.mutate({
+            title: announcementTitle.trim(),
+            body: announcementBody.trim(),
+            committee: announcementCommittee,
+            type: announcementType,
+            priority: announcementPriority,
         });
+    };
+
+    const handleApproveMessage = (id: string) => {
+        moderateMessage.mutate({ id, action: 'approve' });
+    };
+
+    const handleDenyMessage = (id: string, reason: string) => {
+        moderateMessage.mutate({ id, action: 'deny', rejectionReason: reason });
     };
 
     return (
@@ -164,15 +231,24 @@ export const StaffDashboard = () => {
                 Staff Dashboard
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                Manage directives and post crisis updates
+                Manage directives, moderate messages, and post announcements
             </Typography>
 
             <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ mb: 3 }}>
                 <Tab label="Directive Queue" icon={<Assignment />} iconPosition="start" />
-                <Tab label="Post Update" icon={<Update />} iconPosition="start" />
-                <Tab label="Notes" icon={<Message />} iconPosition="start" />
+                <Tab
+                    label="Message Moderation"
+                    icon={
+                        <Badge badgeContent={pendingCount || 0} color="error">
+                            <Message />
+                        </Badge>
+                    }
+                    iconPosition="start"
+                />
+                <Tab label="Post Announcement" icon={<Campaign />} iconPosition="start" />
             </Tabs>
 
+            {/* Directive Queue Tab */}
             {tabValue === 0 && (
                 <Grid container spacing={3}>
                     {/* Filters */}
@@ -202,7 +278,8 @@ export const StaffDashboard = () => {
                                     >
                                         <MenuItem value="">All Statuses</MenuItem>
                                         <MenuItem value="submitted">Submitted</MenuItem>
-                                        <MenuItem value="in_review">In Review</MenuItem>
+                                        <MenuItem value="opened">Opened</MenuItem>
+                                        <MenuItem value="processing">Processing</MenuItem>
                                         <MenuItem value="needs_revision">Needs Revision</MenuItem>
                                         <MenuItem value="approved">Approved</MenuItem>
                                         <MenuItem value="denied">Denied</MenuItem>
@@ -242,15 +319,20 @@ export const StaffDashboard = () => {
                                                     <ListItemText
                                                         primary={
                                                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <Typography fontWeight={600}>{directive.title}</Typography>
-                                                                <Box sx={{ display: 'flex', gap: 1 }}>
-                                                                    <Chip size="small" label={directive.type} variant="outlined" />
-                                                                    <Chip
-                                                                        size="small"
-                                                                        label={directive.status.replace('_', ' ')}
-                                                                        color={statusColors[directive.status]}
-                                                                    />
+                                                                <Box>
+                                                                    <Typography fontWeight={600}>{directive.title}</Typography>
+                                                                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                                                                        <Chip size="small" label={typeLabels[directive.type]} variant="outlined" />
+                                                                        {directive.coSigners && directive.coSigners.length > 0 && (
+                                                                            <Chip size="small" label={`+${directive.coSigners.length} co-signers`} variant="outlined" />
+                                                                        )}
+                                                                    </Box>
                                                                 </Box>
+                                                                <Chip
+                                                                    size="small"
+                                                                    label={directive.status.replace('_', ' ')}
+                                                                    color={statusColors[directive.status]}
+                                                                />
                                                             </Box>
                                                         }
                                                         secondary={
@@ -275,75 +357,170 @@ export const StaffDashboard = () => {
                 </Grid>
             )}
 
+            {/* Message Moderation Tab */}
             {tabValue === 1 && (
                 <Card>
                     <CardContent>
-                        <Typography variant="h6" gutterBottom>
-                            Post Crisis Update
-                        </Typography>
-                        <form onSubmit={handleUpdateSubmit}>
-                            <FormControl fullWidth sx={{ mb: 2 }}>
-                                <InputLabel>Committee</InputLabel>
-                                <Select
-                                    value={updateCommittee}
-                                    label="Committee"
-                                    onChange={(e) => setUpdateCommittee(e.target.value)}
-                                    required
-                                >
-                                    {committees?.map((c) => (
-                                        <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-
-                            <TextField
-                                fullWidth
-                                label="Update Title"
-                                value={updateTitle}
-                                onChange={(e) => setUpdateTitle(e.target.value)}
-                                required
-                                sx={{ mb: 2 }}
-                            />
-
-                            <TextField
-                                fullWidth
-                                label="Update Content"
-                                value={updateBody}
-                                onChange={(e) => setUpdateBody(e.target.value)}
-                                required
-                                multiline
-                                rows={6}
-                                sx={{ mb: 3 }}
-                            />
-
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                disabled={createUpdate.isPending}
-                                startIcon={<Update />}
-                            >
-                                {createUpdate.isPending ? 'Posting...' : 'Post Update'}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="h6">
+                                Pending Messages ({pendingMessages?.length || 0})
+                            </Typography>
+                            <Button startIcon={<Refresh />} onClick={() => refetchMessages()}>
+                                Refresh
                             </Button>
+                        </Box>
 
-                            {createUpdate.isSuccess && (
-                                <Alert severity="success" sx={{ mt: 2 }}>
-                                    Update posted successfully!
-                                </Alert>
-                            )}
-                        </form>
+                        {!pendingMessages?.length ? (
+                            <Typography color="text.secondary" textAlign="center" py={4}>
+                                No messages pending approval
+                            </Typography>
+                        ) : (
+                            <List>
+                                {pendingMessages.map((msg, index) => (
+                                    <Box key={msg._id}>
+                                        {index > 0 && <Divider />}
+                                        <Paper sx={{ p: 2, my: 1 }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                <Box sx={{ flex: 1 }}>
+                                                    <Typography variant="subtitle2">
+                                                        {msg.from.name} → {msg.to.name}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {msg.committee.name} • {new Date(msg.createdAt).toLocaleString()}
+                                                    </Typography>
+                                                    <Paper sx={{ p: 2, mt: 1, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                                                        <Typography>{msg.content}</Typography>
+                                                    </Paper>
+                                                </Box>
+                                            </Box>
+                                            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                                                <Button
+                                                    variant="contained"
+                                                    color="success"
+                                                    size="small"
+                                                    startIcon={<Check />}
+                                                    onClick={() => handleApproveMessage(msg._id)}
+                                                    disabled={moderateMessage.isPending}
+                                                >
+                                                    Approve
+                                                </Button>
+                                                <TextField
+                                                    size="small"
+                                                    placeholder="Rejection reason (optional)"
+                                                    value={rejectionReason}
+                                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                                    sx={{ flex: 1 }}
+                                                />
+                                                <Button
+                                                    variant="outlined"
+                                                    color="error"
+                                                    size="small"
+                                                    startIcon={<Close />}
+                                                    onClick={() => handleDenyMessage(msg._id, rejectionReason)}
+                                                    disabled={moderateMessage.isPending}
+                                                >
+                                                    Deny
+                                                </Button>
+                                            </Box>
+                                        </Paper>
+                                    </Box>
+                                ))}
+                            </List>
+                        )}
                     </CardContent>
                 </Card>
             )}
 
+            {/* Post Announcement Tab */}
             {tabValue === 2 && (
                 <Card>
                     <CardContent>
                         <Typography variant="h6" gutterBottom>
-                            Crisis Notes
+                            Post Announcement
                         </Typography>
-                        <Typography color="text.secondary">
-                            Notes and messaging functionality coming soon.
-                        </Typography>
+                        <form onSubmit={handleAnnouncementSubmit}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} md={6}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Committee</InputLabel>
+                                        <Select
+                                            value={announcementCommittee}
+                                            label="Committee"
+                                            onChange={(e) => setAnnouncementCommittee(e.target.value)}
+                                            required
+                                        >
+                                            {committees?.map((c) => (
+                                                <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} md={3}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Type</InputLabel>
+                                        <Select
+                                            value={announcementType}
+                                            label="Type"
+                                            onChange={(e) => setAnnouncementType(e.target.value as AnnouncementType)}
+                                        >
+                                            <MenuItem value="general">General</MenuItem>
+                                            <MenuItem value="media_notice">Media Notice</MenuItem>
+                                            <MenuItem value="breaking_news">Breaking News</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} md={3}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Priority</InputLabel>
+                                        <Select
+                                            value={announcementPriority}
+                                            label="Priority"
+                                            onChange={(e) => setAnnouncementPriority(e.target.value as AnnouncementPriority)}
+                                        >
+                                            <MenuItem value="normal">Normal</MenuItem>
+                                            <MenuItem value="high">High</MenuItem>
+                                            <MenuItem value="urgent">Urgent</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Announcement Title"
+                                        value={announcementTitle}
+                                        onChange={(e) => setAnnouncementTitle(e.target.value)}
+                                        required
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Announcement Content"
+                                        value={announcementBody}
+                                        onChange={(e) => setAnnouncementBody(e.target.value)}
+                                        required
+                                        multiline
+                                        rows={6}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        disabled={createAnnouncement.isPending}
+                                        startIcon={<Campaign />}
+                                    >
+                                        {createAnnouncement.isPending ? 'Posting...' : 'Post Announcement'}
+                                    </Button>
+
+                                    {createAnnouncement.isSuccess && (
+                                        <Alert severity="success" sx={{ mt: 2 }}>
+                                            Announcement posted successfully!
+                                        </Alert>
+                                    )}
+                                </Grid>
+                            </Grid>
+                        </form>
                     </CardContent>
                 </Card>
             )}
@@ -354,7 +531,15 @@ export const StaffDashboard = () => {
                     <>
                         <DialogTitle>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                {selectedDirective.title}
+                                <Box>
+                                    {selectedDirective.title}
+                                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                                        <Chip size="small" label={typeLabels[selectedDirective.type]} variant="outlined" />
+                                        {selectedDirective.coSigners && selectedDirective.coSigners.length > 0 && (
+                                            <Chip size="small" label={`Co-signers: ${selectedDirective.coSigners.map(c => c.name).join(', ')}`} variant="outlined" color="info" />
+                                        )}
+                                    </Box>
+                                </Box>
                                 <Chip
                                     label={selectedDirective.status.replace('_', ' ')}
                                     color={statusColors[selectedDirective.status]}
@@ -367,13 +552,11 @@ export const StaffDashboard = () => {
                                 <br />
                                 Committee: {selectedDirective.committee.name}
                                 <br />
-                                Type: {selectedDirective.type}
-                                <br />
                                 Submitted: {new Date(selectedDirective.createdAt).toLocaleString()}
                             </Typography>
 
                             <Paper sx={{ p: 2, my: 2, backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                                <Typography>{selectedDirective.body}</Typography>
+                                <Typography sx={{ whiteSpace: 'pre-wrap' }}>{selectedDirective.body}</Typography>
                             </Paper>
 
                             <Divider sx={{ my: 2 }} />
@@ -388,7 +571,8 @@ export const StaffDashboard = () => {
                                             onChange={(e) => setNewStatus(e.target.value as DirectiveStatus)}
                                         >
                                             <MenuItem value="submitted">Submitted</MenuItem>
-                                            <MenuItem value="in_review">In Review</MenuItem>
+                                            <MenuItem value="opened">Opened</MenuItem>
+                                            <MenuItem value="processing">Processing</MenuItem>
                                             <MenuItem value="needs_revision">Needs Revision</MenuItem>
                                             <MenuItem value="approved">Approved</MenuItem>
                                             <MenuItem value="denied">Denied</MenuItem>

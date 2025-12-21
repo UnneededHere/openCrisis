@@ -3,6 +3,8 @@ import authRoutes from './auth';
 import conferenceRoutes from './conferences';
 import committeeRoutes from './committees';
 import directiveRoutes from './directives';
+import messageRoutes from './messages';
+import announcementRoutes from './announcements';
 import updateRoutes from './updates';
 import noteRoutes from './notes';
 import auditRoutes from './audit';
@@ -26,10 +28,16 @@ router.use('/committees', committeeRoutes);
 // Directive routes
 router.use('/directives', directiveRoutes);
 
-// Crisis Update routes
+// Moderated message routes (delegate-to-delegate)
+router.use('/messages', messageRoutes);
+
+// Staff announcement routes
+router.use('/announcements', announcementRoutes);
+
+// Crisis Update routes (legacy)
 router.use('/updates', updateRoutes);
 
-// Crisis Note routes
+// Crisis Note routes (legacy)
 router.use('/notes', noteRoutes);
 
 // Audit routes

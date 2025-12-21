@@ -14,6 +14,7 @@ router.get(
         const user = req.user!;
         const committee = req.query.committee as string | undefined;
         const status = req.query.status as string | undefined;
+        const type = req.query.type as string | undefined;
         const submittedBy = req.query.submittedBy as string | undefined;
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 20;
@@ -30,9 +31,18 @@ router.get(
             query.status = status;
         }
 
-        // Delegates can only see their own directives
+        // Filter by type
+        if (type) {
+            query.type = type;
+        }
+
+        // Delegates see their own directives + directives they co-signed + cabinet directives in their committees
         if (user.role === 'delegate') {
-            query.submittedBy = user._id;
+            query.$or = [
+                { submittedBy: user._id },
+                { coSigners: user._id },
+                { type: 'cabinet', committee: { $in: user.conferences } },
+            ];
         } else if (submittedBy) {
             query.submittedBy = submittedBy;
         }
@@ -44,6 +54,7 @@ router.get(
                 .populate('submittedBy', 'name email')
                 .populate('assignedTo', 'name email')
                 .populate('committee', 'name')
+                .populate('coSigners', 'name')
                 .skip(skip)
                 .limit(limit)
                 .sort({ createdAt: -1 }),
@@ -71,7 +82,7 @@ router.post(
     validateBody(createDirectiveSchema),
     asyncHandler(async (req: Request, res: Response) => {
         const user = req.user!;
-        const { committee: committeeId } = req.body;
+        const { committee: committeeId, type, coSigners } = req.body;
 
         // Verify committee exists and user is a member
         const committee = await Committee.findById(committeeId);
@@ -91,15 +102,38 @@ router.post(
             return;
         }
 
+        // Validate coSigners for joint directives
+        if (type === 'joint') {
+            if (!coSigners || coSigners.length === 0) {
+                res.status(400).json({
+                    success: false,
+                    error: { code: 'VALIDATION_ERROR', message: 'Joint directives require at least one co-signer' },
+                });
+                return;
+            }
+            // Verify all co-signers are committee members
+            for (const signerId of coSigners) {
+                if (!committee.members.some((m) => m.toString() === signerId)) {
+                    res.status(400).json({
+                        success: false,
+                        error: { code: 'VALIDATION_ERROR', message: `Co-signer ${signerId} is not a committee member` },
+                    });
+                    return;
+                }
+            }
+        }
+
         const directive = await Directive.create({
             ...req.body,
             submittedBy: user._id,
             status: 'submitted',
+            coSigners: type === 'joint' ? coSigners : [],
         });
 
         const populated = await Directive.findById(directive._id)
             .populate('submittedBy', 'name email')
-            .populate('committee', 'name');
+            .populate('committee', 'name')
+            .populate('coSigners', 'name');
 
         // Log the action
         await AuditLog.create({
@@ -107,7 +141,7 @@ router.post(
             entityType: 'directive',
             entityId: directive._id,
             performedBy: user._id,
-            details: { title: directive.title, type: directive.type },
+            details: { title: directive.title, type: directive.type, coSignerCount: directive.coSigners.length },
         });
 
         res.status(201).json({
@@ -128,7 +162,8 @@ router.get(
         const directive = await Directive.findById(id)
             .populate('submittedBy', 'name email')
             .populate('assignedTo', 'name email')
-            .populate('committee', 'name');
+            .populate('committee', 'name')
+            .populate('coSigners', 'name');
 
         if (!directive) {
             res.status(404).json({
@@ -138,16 +173,27 @@ router.get(
             return;
         }
 
-        // Check access - staff/admin can see all, delegates only their own
+        // Check access - staff/admin can see all, delegates only their own or co-signed
         const isOwner = directive.submittedBy._id.toString() === user._id.toString();
+        const isCoSigner = directive.coSigners.some((s: { _id: { toString: () => string } }) =>
+            s._id.toString() === user._id.toString()
+        );
         const isStaffOrAdmin = user.role === 'admin' || user.role === 'staff';
+        const isCabinet = directive.type === 'cabinet';
 
-        if (!isOwner && !isStaffOrAdmin) {
+        if (!isOwner && !isCoSigner && !isStaffOrAdmin && !isCabinet) {
             res.status(403).json({
                 success: false,
                 error: { code: 'FORBIDDEN', message: 'You do not have access to this directive' },
             });
             return;
+        }
+
+        // Mark as opened if staff is viewing for first time
+        if (isStaffOrAdmin && !directive.openedAt) {
+            directive.openedAt = new Date();
+            directive.status = 'opened';
+            await directive.save();
         }
 
         res.json({
@@ -182,9 +228,16 @@ router.put(
 
         directive.status = status;
         directive.assignedTo = user._id;
+
+        // Update status tracking timestamps
+        if (status === 'processing' && !directive.processingAt) {
+            directive.processingAt = new Date();
+        }
         if (outcome) {
             directive.outcome = outcome;
+            directive.repliedAt = new Date();
         }
+
         await directive.save();
 
         // Log the action
@@ -199,7 +252,8 @@ router.put(
         const populated = await Directive.findById(id)
             .populate('submittedBy', 'name email')
             .populate('assignedTo', 'name email')
-            .populate('committee', 'name');
+            .populate('committee', 'name')
+            .populate('coSigners', 'name');
 
         res.json({
             success: true,
@@ -231,6 +285,7 @@ router.put(
 
         directive.feedback = feedback;
         directive.assignedTo = user._id;
+        directive.repliedAt = new Date();
         await directive.save();
 
         // Log the action
@@ -245,7 +300,8 @@ router.put(
         const populated = await Directive.findById(id)
             .populate('submittedBy', 'name email')
             .populate('assignedTo', 'name email')
-            .populate('committee', 'name');
+            .populate('committee', 'name')
+            .populate('coSigners', 'name');
 
         res.json({
             success: true,
