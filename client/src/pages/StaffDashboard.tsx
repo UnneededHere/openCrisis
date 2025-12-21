@@ -338,7 +338,7 @@ export const StaffDashboard = () => {
                                                         secondary={
                                                             <>
                                                                 <Typography variant="body2" color="text.secondary">
-                                                                    From: {directive.submittedBy.name} • {directive.committee.name}
+                                                                    From: {directive.submittedBy?.name || 'Unknown'} • {directive.committee?.name || 'Unknown'}
                                                                 </Typography>
                                                                 <Typography variant="caption" color="text.secondary">
                                                                     {new Date(directive.createdAt).toLocaleString()}
@@ -548,9 +548,9 @@ export const StaffDashboard = () => {
                         </DialogTitle>
                         <DialogContent>
                             <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                                From: {selectedDirective.submittedBy.name} ({selectedDirective.submittedBy.email})
+                                From: {selectedDirective.submittedBy?.name || 'Unknown'} ({selectedDirective.submittedBy?.email || 'N/A'})
                                 <br />
-                                Committee: {selectedDirective.committee.name}
+                                Committee: {selectedDirective.committee?.name || 'Unknown'}
                                 <br />
                                 Submitted: {new Date(selectedDirective.createdAt).toLocaleString()}
                             </Typography>
