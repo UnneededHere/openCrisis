@@ -24,13 +24,13 @@ import {
     Menu as MenuIcon,
     Dashboard,
     Description,
-    Update,
     Message,
     AdminPanelSettings,
     People,
     Logout,
     Event,
     Groups,
+    Campaign,
 } from '@mui/icons-material';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
@@ -81,15 +81,15 @@ export const Layout = () => {
             return [
                 ...baseItems,
                 { text: 'Directive Queue', icon: <Description />, path: '/staff' },
-                { text: 'Updates', icon: <Update />, path: '/staff?tab=updates' },
+                { text: 'Announcements', icon: <Campaign />, path: '/staff?tab=announcements' },
                 {
-                    text: 'Notes',
+                    text: 'Messages',
                     icon: (
                         <Badge badgeContent={unreadNoteCount} color="error">
                             <Message />
                         </Badge>
                     ),
-                    path: '/staff?tab=notes'
+                    path: '/staff?tab=messages'
                 },
             ];
         }

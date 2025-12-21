@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Box,
@@ -109,7 +110,29 @@ export const DelegateDashboard = () => {
     const queryClient = useQueryClient();
     const { realtimeDirectives } = useAppStore();
 
-    const [tabValue, setTabValue] = useState(0);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab');
+
+    const getTabValue = () => {
+        if (tabParam === 'messages') return 1;
+        if (tabParam === 'announcements') return 2;
+        return 0;
+    };
+
+    const [tabValue, setTabValue] = useState(getTabValue());
+
+    useEffect(() => {
+        setTabValue(getTabValue());
+    }, [tabParam]);
+
+    const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+        setTabValue(newValue);
+        const newParams = new URLSearchParams(searchParams);
+        if (newValue === 0) newParams.delete('tab');
+        else if (newValue === 1) newParams.set('tab', 'messages');
+        else if (newValue === 2) newParams.set('tab', 'announcements');
+        setSearchParams(newParams);
+    };
     const [selectedCommittee, setSelectedCommittee] = useState('');
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
@@ -268,7 +291,7 @@ export const DelegateDashboard = () => {
                 Submit directives, send messages, and view announcements
             </Typography>
 
-            <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ mb: 3 }}>
+            <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
                 <Tab label="Directives" icon={<Description />} iconPosition="start" />
                 <Tab label="Messages" icon={<Message />} iconPosition="start" />
                 <Tab label="Announcements" icon={<Campaign />} iconPosition="start" />

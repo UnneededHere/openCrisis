@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Box,
@@ -82,7 +83,29 @@ const typeLabels: Record<DirectiveType, string> = {
 export const StaffDashboard = () => {
     const queryClient = useQueryClient();
 
-    const [tabValue, setTabValue] = useState(0);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab');
+
+    const getTabValue = () => {
+        if (tabParam === 'messages') return 1;
+        if (tabParam === 'announcements') return 2;
+        return 0;
+    };
+
+    const [tabValue, setTabValue] = useState(getTabValue());
+
+    useEffect(() => {
+        setTabValue(getTabValue());
+    }, [tabParam]);
+
+    const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+        setTabValue(newValue);
+        const newParams = new URLSearchParams(searchParams);
+        if (newValue === 0) newParams.delete('tab');
+        else if (newValue === 1) newParams.set('tab', 'messages');
+        else if (newValue === 2) newParams.set('tab', 'announcements');
+        setSearchParams(newParams);
+    };
     const [filterCommittee, setFilterCommittee] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [selectedDirective, setSelectedDirective] = useState<Directive | null>(null);
@@ -280,7 +303,7 @@ export const StaffDashboard = () => {
                 </Alert>
             )}
 
-            <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ mb: 3 }}>
+            <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
                 <Tab label="Directive Queue" icon={<Assignment />} iconPosition="start" />
                 <Tab
                     label="Message Moderation"

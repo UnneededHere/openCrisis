@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Box,
@@ -47,7 +48,29 @@ interface Committee {
 
 export const AdminDashboard = () => {
     const queryClient = useQueryClient();
-    const [tabValue, setTabValue] = useState(0);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab');
+
+    const getTabValue = () => {
+        if (tabParam === 'committees') return 1;
+        if (tabParam === 'users') return 2;
+        return 0;
+    };
+
+    const [tabValue, setTabValue] = useState(getTabValue());
+
+    useEffect(() => {
+        setTabValue(getTabValue());
+    }, [tabParam]);
+
+    const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+        setTabValue(newValue);
+        const newParams = new URLSearchParams(searchParams);
+        if (newValue === 0) newParams.delete('tab');
+        else if (newValue === 1) newParams.set('tab', 'committees');
+        else if (newValue === 2) newParams.set('tab', 'users');
+        setSearchParams(newParams);
+    };
 
     // Conference state
     const [conferenceDialogOpen, setConferenceDialogOpen] = useState(false);
@@ -137,7 +160,7 @@ export const AdminDashboard = () => {
                 Manage conferences, committees, and users
             </Typography>
 
-            <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ mb: 3 }}>
+            <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
                 <Tab label="Conferences" icon={<Event />} iconPosition="start" />
                 <Tab label="Committees" icon={<Groups />} iconPosition="start" />
                 <Tab label="Users" icon={<People />} iconPosition="start" />
