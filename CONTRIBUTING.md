@@ -15,7 +15,7 @@ Thank you for your interest in contributing to OpenCrisis! This document provide
 1. **Fork and clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/opencrisis.git
+   git clone https://github.com/UnneededHere/opencrisis.git
    cd opencrisis
    ```
 

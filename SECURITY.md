@@ -13,11 +13,7 @@ If you discover a security vulnerability in OpenCrisis, please follow these step
 
 1. **Do NOT** open a public issue on GitHub.
 
-2. **Email the maintainers** directly at [security@example.com] with:
-   - A description of the vulnerability
-   - Steps to reproduce
-   - Potential impact assessment
-   - Any suggested fixes (optional)
+2. **Open a private advisory** on GitHub or contact the maintainers via private channels if available.
 
 3. **Allow time for response**. We aim to respond within 48 hours and provide a fix within 7 days for critical issues.
 
