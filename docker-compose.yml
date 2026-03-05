@@ -45,5 +45,22 @@ services:
       - server
     restart: unless-stopped
 
+  seed:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: opencrisis-seed
+    command: node dist/scripts/seed.js
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/opencrisis
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: "no"
+    profiles:
+      - seed
+
 volumes:
   mongodb_data:
