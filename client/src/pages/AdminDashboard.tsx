@@ -42,7 +42,7 @@ interface Committee {
     type: string;
     description?: string;
     conference: { _id: string; name: string };
-    members: { _id: string; name: string; email: string }[];
+    members: { user: { _id: string; name: string; email: string }; characterName: string }[];
     staff: { _id: string; name: string; email: string }[];
 }
 
@@ -572,8 +572,11 @@ export const AdminDashboard = () => {
                                     </Typography>
                                     <List dense>
                                         {selectedCommittee.members?.map((member) => (
-                                            <ListItem key={member._id}>
-                                                <ListItemText primary={member.name} secondary={member.email} />
+                                            <ListItem key={member.user._id}>
+                                                <ListItemText
+                                                    primary={`${member.user.name} — ${member.characterName}`}
+                                                    secondary={member.user.email}
+                                                />
                                             </ListItem>
                                         ))}
                                         {!selectedCommittee.members?.length && (
