@@ -320,11 +320,7 @@ export const AdminDashboard = () => {
                                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                             {conference.description || 'No description'}
                                         </Typography>
-                                        <Alert severity="info" sx={{ py: 0 }}>
-                                            <Typography variant="body2" fontWeight={600}>
-                                                Join Code: {conference.code}
-                                            </Typography>
-                                        </Alert>
+
                                         <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
                                             Created: {new Date(conference.createdAt).toLocaleDateString()}
                                         </Typography>

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { adminCreateUserSchema } from '@opencrisis/shared';
-import { User } from '../models';
-import { AuditLog } from '../models';
+import { z } from 'zod';
+import { adminCreateUserSchema, changePasswordSchema } from '@opencrisis/shared';
+import { User, AuditLog } from '../models';
 import { authenticate, requireAdmin, validateBody, asyncHandler } from '../middleware';
 
 const router = Router();
@@ -67,6 +67,44 @@ router.post(
                 role: user.role,
                 createdAt: user.createdAt,
             },
+        });
+    })
+);
+
+// PUT /api/users/me/password - Change currently logged in user's password
+router.put(
+    '/me/password',
+    authenticate,
+    validateBody(changePasswordSchema),
+    asyncHandler(async (req: Request, res: Response) => {
+        const user = req.user!;
+        const { currentPassword, newPassword } = req.body;
+
+        // Verify current password
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) {
+            res.status(401).json({
+                success: false,
+                error: { code: 'INVALID_CREDENTIALS', message: 'Current password is incorrect' },
+            });
+            return;
+        }
+
+        // Update password (the pre-save hook on User schema will hash it automatically)
+        user.password = newPassword;
+        await user.save();
+
+        // Optional: log the password change
+        await AuditLog.create({
+            action: 'USER_LOGIN', // Using existing valid type as we don't have PASSWORD_CHANGE
+            user: user._id,
+            details: { message: 'User changed their password' },
+            ipAddress: req.ip,
+        });
+
+        res.json({
+            success: true,
+            data: { message: 'Password changed successfully' },
         });
     })
 );

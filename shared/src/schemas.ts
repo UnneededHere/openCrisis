@@ -25,21 +25,20 @@ export const adminCreateUserSchema = z.object({
     role: z.enum(['staff', 'delegate'] as const),
 });
 
+export const changePasswordSchema = z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+});
+
 // Conference schemas
 export const createConferenceSchema = z.object({
-    name: z.string().min(2).max(200),
-    description: z.string().max(1000).optional(),
+    name: z.string().min(2, 'Name is required').max(100),
+    description: z.string().optional(),
+    startDate: z.string().datetime().optional(),
+    endDate: z.string().datetime().optional(),
 });
 
-export const updateConferenceSchema = z.object({
-    name: z.string().min(2).max(200).optional(),
-    description: z.string().max(1000).optional(),
-    isActive: z.boolean().optional(),
-});
-
-export const joinConferenceSchema = z.object({
-    code: z.string().min(1, 'Conference code is required'),
-});
+export const updateConferenceSchema = createConferenceSchema.partial();
 
 // Committee schemas
 export const createCommitteeSchema = z.object({
@@ -167,9 +166,9 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type AdminCreateUserInput = z.infer<typeof adminCreateUserSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type CreateConferenceInput = z.infer<typeof createConferenceSchema>;
 export type UpdateConferenceInput = z.infer<typeof updateConferenceSchema>;
-export type JoinConferenceInput = z.infer<typeof joinConferenceSchema>;
 export type CreateCommitteeInput = z.infer<typeof createCommitteeSchema>;
 export type UpdateCommitteeInput = z.infer<typeof updateCommitteeSchema>;
 export type AssignCommitteeInput = z.infer<typeof assignCommitteeSchema>;

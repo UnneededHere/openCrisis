@@ -4,7 +4,6 @@ import { nanoid } from 'nanoid';
 export interface IConference extends Document {
     _id: mongoose.Types.ObjectId;
     name: string;
-    code: string;
     description?: string;
     isActive: boolean;
     createdBy: mongoose.Types.ObjectId;
@@ -20,13 +19,6 @@ const conferenceSchema = new Schema<IConference>(
             trim: true,
             minlength: 2,
             maxlength: 200,
-        },
-        code: {
-            type: String,
-            required: true,
-            unique: true,
-            default: () => nanoid(8).toUpperCase(),
-            index: true,
         },
         description: {
             type: String,

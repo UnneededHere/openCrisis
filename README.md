@@ -34,6 +34,24 @@ To test this out on your own computer (e.g., to show your Secretariat), follow t
     ```
 4.  **That is it.** Open your browser to `http://localhost:3000`.
 
+### Initial Setup & First Login
+
+When OpenCrisis starts for the first time, a default **admin account** is created automatically:
+
+| Field    | Value               |
+|----------|---------------------|
+| Email    | `admin@example.com` |
+| Password | `password123`       |
+
+> **Important:** Change this password immediately after your first login.
+
+Once logged in as admin, follow these steps to prepare your conference:
+
+1.  **Create User Accounts**: Navigate to the **Admin Dashboard → Users** tab. Click **Create User** to add accounts for your staff (backroomers) and delegates. You set each user's email, password, name, and role (`Staff` or `Delegate`).
+2.  **Create a Conference**: Go to the **Admin Dashboard → Conferences** tab. Click **New Conference** and give it a name and description.
+3.  **Create Committees**: Switch to the **Committees** tab and click **New Committee**, assigning it to the conference you just created.
+4.  **Assign Users to Committees**: Click on a committee to open its details. Use the **Assign User to Committee** form at the bottom to add staff and delegates. When assigning a delegate as a member, you will be asked for their **Character Name** (the character they will portray in the crisis).
+
 ### Going Live for the Conference
 
 **Important:** The steps above only run the system on your personal laptop (`localhost`). For the actual conference, you need the system to be accessible to all delegates in the committee room.

@@ -29,7 +29,7 @@ This script walks through the key user flows in OpenCrisis.
    - Admin: `admin@example.com` / `password123`
    - Staff: `staff@example.com` / `password123`
    - Delegate: `delegate@example.com` / `password123`
-   - Conference: "OpenMUN 2024" with join code displayed in console
+   - Conference: "OpenMUN 2024"
    - Committees: "Global Crisis Committee" and "UN General Assembly"
 
 ## Demo Flow
@@ -39,7 +39,7 @@ This script walks through the key user flows in OpenCrisis.
 1. Open `http://localhost:3000`
 2. Log in as **admin@example.com** / **password123**
 3. You'll see the Admin Dashboard with Conferences tab
-4. Note the existing "OpenMUN 2024" conference with its join code
+4. Note the existing "OpenMUN 2024" conference
 5. Click "New Conference" to create another one
 6. Switch to Committees tab to view/create committees
 7. Click on a committee to see members and staff
@@ -99,13 +99,12 @@ In the **delegate window**:
 1. Click "Refresh" on My Submissions
 2. See the directive now shows "approved" status with the outcome
 
-### 6. Join Conference (New Delegate)
+### 6. New Delegate Setup
 
 1. Click "Logout" in the delegate window
 2. Click "Register here" to create a new account
 3. Fill in details and register
-4. After login, you'll need to join a conference
-5. Use the admin to get the join code, or use the API directly
+4. After login, an admin must assign you to a committee to see the dashboard.
 
 ## API Testing with cURL
 

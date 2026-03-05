@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { createConferenceSchema, updateConferenceSchema, joinConferenceSchema } from '@opencrisis/shared';
+import { createConferenceSchema, updateConferenceSchema } from '@opencrisis/shared';
 import { Conference, User, Committee } from '../models';
 import { authenticate, requireAdmin, validateBody, asyncHandler } from '../middleware';
 
@@ -156,54 +156,6 @@ router.delete(
         res.json({
             success: true,
             data: { message: 'Conference deleted successfully' },
-        });
-    })
-);
-
-// POST /api/conferences/:id/join - Join conference via code
-router.post(
-    '/:id/join',
-    authenticate,
-    validateBody(joinConferenceSchema),
-    asyncHandler(async (req: Request, res: Response) => {
-        const user = req.user!;
-        const { code } = req.body;
-
-        const conference = await Conference.findOne({ code: code.toUpperCase() });
-
-        if (!conference) {
-            res.status(404).json({
-                success: false,
-                error: { code: 'INVALID_CODE', message: 'Invalid conference code' },
-            });
-            return;
-        }
-
-        if (!conference.isActive) {
-            res.status(400).json({
-                success: false,
-                error: { code: 'CONFERENCE_INACTIVE', message: 'This conference is not active' },
-            });
-            return;
-        }
-
-        // Check if already member
-        if (user.conferences.some((c) => c.toString() === conference._id.toString())) {
-            res.status(400).json({
-                success: false,
-                error: { code: 'ALREADY_MEMBER', message: 'You are already a member of this conference' },
-            });
-            return;
-        }
-
-        // Add conference to user
-        await User.findByIdAndUpdate(user._id, {
-            $push: { conferences: conference._id },
-        });
-
-        res.json({
-            success: true,
-            data: { message: 'Joined conference successfully', conference },
         });
     })
 );

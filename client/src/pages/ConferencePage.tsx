@@ -87,11 +87,6 @@ export const ConferencePage = () => {
                             <Typography variant="body2" color="text.secondary" paragraph>
                                 {conference.description || 'No description provided'}
                             </Typography>
-                            <Alert severity="info">
-                                <Typography variant="body2">
-                                    <strong>Join Code:</strong> {conference.code}
-                                </Typography>
-                            </Alert>
                             <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 2 }}>
                                 Created by {conference.createdBy?.name} on {new Date(conference.createdAt).toLocaleDateString()}
                             </Typography>

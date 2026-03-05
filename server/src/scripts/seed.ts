@@ -142,8 +142,6 @@ const seedDatabase = async () => {
         logger.info('    delegate5@example.com - Eva Mueller');
         logger.info('    delegate6@example.com - Frank Okonkwo');
         logger.info('');
-        logger.info(`Conference Code: ${conference.code}`);
-        logger.info('');
         logger.info('Committees:');
         logger.info(`  - ${crisisCommittee.name} (${crisisCommittee.type}) - 6 characters`);
         logger.info(`  - ${generalCommittee.name} (${generalCommittee.type}) - 4 characters`);

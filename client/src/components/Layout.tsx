@@ -15,13 +15,16 @@ import {
 import {
     AdminPanelSettings,
     Logout,
+    VpnKey,
 } from '@mui/icons-material';
 import { useAuthStore } from '../stores/authStore';
+import { ChangePasswordDialog } from './ChangePasswordDialog';
 
 export const Layout = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
 
     const handleUserMenuClick = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -104,6 +107,15 @@ export const Layout = () => {
                             </Typography>
                         </MenuItem>
                         <Divider />
+                        <MenuItem onClick={() => {
+                            handleUserMenuClose();
+                            setPasswordDialogOpen(true);
+                        }}>
+                            <ListItemIcon>
+                                <VpnKey fontSize="small" />
+                            </ListItemIcon>
+                            Change Password
+                        </MenuItem>
                         <MenuItem onClick={handleLogout}>
                             <ListItemIcon>
                                 <Logout fontSize="small" />
@@ -113,6 +125,11 @@ export const Layout = () => {
                     </Menu>
                 </Toolbar>
             </AppBar>
+
+            <ChangePasswordDialog
+                open={passwordDialogOpen}
+                onClose={() => setPasswordDialogOpen(false)}
+            />
 
             <Box
                 component="main"
