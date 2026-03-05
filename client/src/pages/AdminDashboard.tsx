@@ -100,6 +100,12 @@ export const AdminDashboard = () => {
     const [newUserRole, setNewUserRole] = useState<'staff' | 'delegate'>('delegate');
     const [userError, setUserError] = useState('');
 
+    // Assignment state
+    const [assignUserId, setAssignUserId] = useState('');
+    const [assignRole, setAssignRole] = useState<'member' | 'staff'>('member');
+    const [assignCharacterName, setAssignCharacterName] = useState('');
+    const [assignError, setAssignError] = useState('');
+
     // Fetch conferences
     const { data: conferences, isLoading: conferencesLoading, refetch: refetchConferences } = useQuery({
         queryKey: ['conferences'],
@@ -177,6 +183,29 @@ export const AdminDashboard = () => {
         },
     });
 
+    // Assign user to committee mutation
+    const assignUser = useMutation({
+        mutationFn: async (data: { committeeId: string; userId: string; role: 'member' | 'staff'; characterName?: string }) => {
+            const response = await api.post(`/committees/${data.committeeId}/assign`, {
+                userId: data.userId,
+                role: data.role,
+                characterName: data.characterName,
+            });
+            return response.data.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['committees'] });
+            setAssignUserId('');
+            setAssignRole('member');
+            setAssignCharacterName('');
+            setAssignError('');
+        },
+        onError: (error: any) => {
+            const message = error?.response?.data?.error?.message || 'Failed to assign user';
+            setAssignError(message);
+        },
+    });
+
     const handleCreateConference = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newConferenceName.trim()) return;
@@ -206,6 +235,22 @@ export const AdminDashboard = () => {
             password: newUserPassword,
             name: newUserName.trim(),
             role: newUserRole,
+        });
+    };
+
+    const handleAssignUser = (e: React.FormEvent) => {
+        e.preventDefault();
+        setAssignError('');
+        if (!selectedCommittee || !assignUserId) return;
+        if (assignRole === 'member' && !assignCharacterName.trim()) {
+            setAssignError('Character name is required for members');
+            return;
+        }
+        assignUser.mutate({
+            committeeId: selectedCommittee._id,
+            userId: assignUserId,
+            role: assignRole,
+            characterName: assignRole === 'member' ? assignCharacterName.trim() : undefined,
         });
     };
 
@@ -552,6 +597,67 @@ export const AdminDashboard = () => {
                                     </List>
                                 </Grid>
                             </Grid>
+
+                            <Divider sx={{ my: 2 }} />
+
+                            {/* Assign User Form */}
+                            <Typography variant="subtitle2" gutterBottom>
+                                Assign User to Committee
+                            </Typography>
+                            {assignError && (
+                                <Alert severity="error" sx={{ mb: 2 }}>
+                                    {assignError}
+                                </Alert>
+                            )}
+                            <Box component="form" onSubmit={handleAssignUser} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <TextField
+                                    fullWidth
+                                    select
+                                    label="User"
+                                    value={assignUserId}
+                                    onChange={(e) => setAssignUserId(e.target.value)}
+                                    required
+                                    SelectProps={{ native: true }}
+                                    size="small"
+                                >
+                                    <option value="">Select a user</option>
+                                    {users?.map((u) => (
+                                        <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
+                                    ))}
+                                </TextField>
+                                <TextField
+                                    fullWidth
+                                    select
+                                    label="Role in Committee"
+                                    value={assignRole}
+                                    onChange={(e) => setAssignRole(e.target.value as 'member' | 'staff')}
+                                    required
+                                    SelectProps={{ native: true }}
+                                    size="small"
+                                >
+                                    <option value="member">Member (Delegate)</option>
+                                    <option value="staff">Staff (Backroomer)</option>
+                                </TextField>
+                                {assignRole === 'member' && (
+                                    <TextField
+                                        fullWidth
+                                        label="Character Name"
+                                        value={assignCharacterName}
+                                        onChange={(e) => setAssignCharacterName(e.target.value)}
+                                        required
+                                        helperText="The character this delegate will portray"
+                                        size="small"
+                                    />
+                                )}
+                                <Button
+                                    type="submit"
+                                    variant="contained"
+                                    disabled={assignUser.isPending}
+                                    sx={{ alignSelf: 'flex-start' }}
+                                >
+                                    {assignUser.isPending ? 'Assigning...' : 'Assign User'}
+                                </Button>
+                            </Box>
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={() => setSelectedCommittee(null)}>Close</Button>
