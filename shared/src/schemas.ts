@@ -17,6 +17,14 @@ export const refreshTokenSchema = z.object({
     refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
+// Admin user creation schema
+export const adminCreateUserSchema = z.object({
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+    role: z.enum(['staff', 'delegate'] as const),
+});
+
 // Conference schemas
 export const createConferenceSchema = z.object({
     name: z.string().min(2).max(200),
@@ -158,6 +166,7 @@ export const committeeQuerySchema = paginationSchema.extend({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
+export type AdminCreateUserInput = z.infer<typeof adminCreateUserSchema>;
 export type CreateConferenceInput = z.infer<typeof createConferenceSchema>;
 export type UpdateConferenceInput = z.infer<typeof updateConferenceSchema>;
 export type JoinConferenceInput = z.infer<typeof joinConferenceSchema>;

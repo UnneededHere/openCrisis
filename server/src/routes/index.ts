@@ -8,6 +8,7 @@ import announcementRoutes from './announcements';
 import updateRoutes from './updates';
 import noteRoutes from './notes';
 import auditRoutes from './audit';
+import userRoutes from './users';
 
 const router = Router();
 
@@ -24,6 +25,9 @@ router.use('/conferences', conferenceRoutes);
 
 // Committee routes
 router.use('/committees', committeeRoutes);
+
+// User management routes (admin)
+router.use('/users', userRoutes);
 
 // Directive routes
 router.use('/directives', directiveRoutes);

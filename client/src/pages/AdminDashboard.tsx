@@ -24,7 +24,7 @@ import {
     Chip,
     Alert,
 } from '@mui/material';
-import { Event, Groups, People, Add, Refresh } from '@mui/icons-material';
+import { Event, Groups, People, Add, Refresh, PersonAdd } from '@mui/icons-material';
 import { api } from '../api/client';
 
 interface Conference {
@@ -44,6 +44,14 @@ interface Committee {
     conference: { _id: string; name: string };
     members: { _id: string; name: string; email: string }[];
     staff: { _id: string; name: string; email: string }[];
+}
+
+interface UserItem {
+    _id: string;
+    email: string;
+    name: string;
+    role: string;
+    createdAt: string;
 }
 
 export const AdminDashboard = () => {
@@ -84,6 +92,14 @@ export const AdminDashboard = () => {
     const [newCommitteeConference, setNewCommitteeConference] = useState('');
     const [selectedCommittee, setSelectedCommittee] = useState<Committee | null>(null);
 
+    // User state
+    const [userDialogOpen, setUserDialogOpen] = useState(false);
+    const [newUserEmail, setNewUserEmail] = useState('');
+    const [newUserPassword, setNewUserPassword] = useState('');
+    const [newUserName, setNewUserName] = useState('');
+    const [newUserRole, setNewUserRole] = useState<'staff' | 'delegate'>('delegate');
+    const [userError, setUserError] = useState('');
+
     // Fetch conferences
     const { data: conferences, isLoading: conferencesLoading, refetch: refetchConferences } = useQuery({
         queryKey: ['conferences'],
@@ -99,6 +115,15 @@ export const AdminDashboard = () => {
         queryFn: async () => {
             const response = await api.get('/committees');
             return response.data.data as Committee[];
+        },
+    });
+
+    // Fetch users
+    const { data: users, isLoading: usersLoading, refetch: refetchUsers } = useQuery({
+        queryKey: ['users', 'admin'],
+        queryFn: async () => {
+            const response = await api.get('/users');
+            return response.data.data as UserItem[];
         },
     });
 
@@ -131,6 +156,27 @@ export const AdminDashboard = () => {
         },
     });
 
+    // Create user mutation
+    const createUser = useMutation({
+        mutationFn: async (data: { email: string; password: string; name: string; role: string }) => {
+            const response = await api.post('/users', data);
+            return response.data.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            setUserDialogOpen(false);
+            setNewUserEmail('');
+            setNewUserPassword('');
+            setNewUserName('');
+            setNewUserRole('delegate');
+            setUserError('');
+        },
+        onError: (error: any) => {
+            const message = error?.response?.data?.error?.message || 'Failed to create user';
+            setUserError(message);
+        },
+    });
+
     const handleCreateConference = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newConferenceName.trim()) return;
@@ -149,6 +195,27 @@ export const AdminDashboard = () => {
             conference: newCommitteeConference,
             type: 'crisis',
         });
+    };
+
+    const handleCreateUser = (e: React.FormEvent) => {
+        e.preventDefault();
+        setUserError('');
+        if (!newUserEmail.trim() || !newUserPassword || !newUserName.trim()) return;
+        createUser.mutate({
+            email: newUserEmail.trim(),
+            password: newUserPassword,
+            name: newUserName.trim(),
+            role: newUserRole,
+        });
+    };
+
+    const getRoleColor = (role: string) => {
+        switch (role) {
+            case 'admin': return 'error';
+            case 'staff': return 'warning';
+            case 'delegate': return 'info';
+            default: return 'default';
+        }
     };
 
     return (
@@ -282,16 +349,82 @@ export const AdminDashboard = () => {
             )}
 
             {tabValue === 2 && (
-                <Card>
-                    <CardContent>
-                        <Typography variant="h6" gutterBottom>
-                            User Management
-                        </Typography>
-                        <Typography color="text.secondary">
-                            User management features coming soon. Users can self-register and join conferences using the join code.
-                        </Typography>
-                    </CardContent>
-                </Card>
+                <Grid container spacing={3}>
+                    <Grid item xs={12}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                            <Typography variant="h6">
+                                Users ({users?.length || 0})
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button startIcon={<Refresh />} onClick={() => refetchUsers()}>
+                                    Refresh
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    startIcon={<PersonAdd />}
+                                    onClick={() => {
+                                        setUserError('');
+                                        setUserDialogOpen(true);
+                                    }}
+                                >
+                                    Create User
+                                </Button>
+                            </Box>
+                        </Box>
+                    </Grid>
+
+                    {usersLoading ? (
+                        <Grid item xs={12}>
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                                <CircularProgress />
+                            </Box>
+                        </Grid>
+                    ) : (
+                        <Grid item xs={12}>
+                            <Card>
+                                <List>
+                                    {users?.map((user, index) => (
+                                        <Box key={user._id}>
+                                            {index > 0 && <Divider />}
+                                            <ListItem>
+                                                <ListItemText
+                                                    primary={
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <Typography fontWeight={600}>{user.name}</Typography>
+                                                            <Chip
+                                                                size="small"
+                                                                label={user.role}
+                                                                color={getRoleColor(user.role) as any}
+                                                            />
+                                                        </Box>
+                                                    }
+                                                    secondary={
+                                                        <>
+                                                            {user.email}
+                                                            <br />
+                                                            Joined: {new Date(user.createdAt).toLocaleDateString()}
+                                                        </>
+                                                    }
+                                                />
+                                            </ListItem>
+                                        </Box>
+                                    ))}
+                                    {!users?.length && (
+                                        <ListItem>
+                                            <ListItemText
+                                                primary={
+                                                    <Typography color="text.secondary">
+                                                        No users found
+                                                    </Typography>
+                                                }
+                                            />
+                                        </ListItem>
+                                    )}
+                                </List>
+                            </Card>
+                        </Grid>
+                    )}
+                </Grid>
             )}
 
             {/* Create Conference Dialog */}
@@ -425,6 +558,66 @@ export const AdminDashboard = () => {
                         </DialogActions>
                     </>
                 )}
+            </Dialog>
+
+            {/* Create User Dialog */}
+            <Dialog open={userDialogOpen} onClose={() => setUserDialogOpen(false)} maxWidth="sm" fullWidth>
+                <form onSubmit={handleCreateUser}>
+                    <DialogTitle>Create New User</DialogTitle>
+                    <DialogContent>
+                        {userError && (
+                            <Alert severity="error" sx={{ mb: 2, mt: 1 }}>
+                                {userError}
+                            </Alert>
+                        )}
+                        <TextField
+                            fullWidth
+                            label="Email"
+                            type="email"
+                            value={newUserEmail}
+                            onChange={(e) => setNewUserEmail(e.target.value)}
+                            required
+                            autoFocus
+                            sx={{ mt: 1, mb: 2 }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Password"
+                            type="password"
+                            value={newUserPassword}
+                            onChange={(e) => setNewUserPassword(e.target.value)}
+                            required
+                            helperText="Must be at least 8 characters"
+                            sx={{ mb: 2 }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Full Name"
+                            value={newUserName}
+                            onChange={(e) => setNewUserName(e.target.value)}
+                            required
+                            sx={{ mb: 2 }}
+                        />
+                        <TextField
+                            fullWidth
+                            select
+                            label="Role"
+                            value={newUserRole}
+                            onChange={(e) => setNewUserRole(e.target.value as 'staff' | 'delegate')}
+                            required
+                            SelectProps={{ native: true }}
+                        >
+                            <option value="delegate">Delegate</option>
+                            <option value="staff">Staff (Backroomer)</option>
+                        </TextField>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setUserDialogOpen(false)}>Cancel</Button>
+                        <Button type="submit" variant="contained" disabled={createUser.isPending}>
+                            {createUser.isPending ? 'Creating...' : 'Create User'}
+                        </Button>
+                    </DialogActions>
+                </form>
             </Dialog>
         </Box>
     );

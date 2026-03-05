@@ -1,7 +1,7 @@
 import http from 'http';
 import app from './app';
 import { config } from './config';
-import { connectDatabase } from './config/database';
+import { connectDatabase, ensureAdminAccount } from './config/database';
 import { logger } from './config/logger';
 import { initializeSocket } from './socket';
 
@@ -9,6 +9,9 @@ const startServer = async () => {
     try {
         // Connect to MongoDB
         await connectDatabase();
+
+        // Ensure default admin account exists
+        await ensureAdminAccount();
 
         // Create HTTP server
         const server = http.createServer(app);
